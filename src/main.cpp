@@ -1,12 +1,13 @@
+#include <ESP8266WiFi.h>
 #include <WiFiManager.h>
-#include <WebServer.h> // For ESP32
+#include <ESP8266WebServer.h>
 #include <DHT.h>
 
-#define DHTPIN 4 // GPIO04
+#define DHTPIN 13 // GPIO04 (D2 on NodeMCU)
 #define DHTTYPE DHT11
 DHT dht(DHTPIN, DHTTYPE);
 
-WebServer server(80); // Create web server on port 80
+ESP8266WebServer server(80);
 
 void handleRoot() {
     float h = dht.readHumidity();
@@ -102,13 +103,12 @@ void setup() {
         Serial.println(WiFi.localIP());
     }
     dht.begin();
-    // Start web server after WiFi is connected
     server.on("/", handleRoot);
     server.begin();
     Serial.println("Web server started. Open http://" + WiFi.localIP().toString());
 }
 
 void loop() {
-    server.handleClient(); // Handle web server requests
+    server.handleClient();
     // Main code here
 }
