@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Grow Tent Monitor</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #eee;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      text-align: center;
+      padding: 20px;
+      background: #222;
+      border-radius: 12px;
+      box-shadow: 0 0 10px #000;
+      width: 300px;
+    }
+
+    .readings {
+      margin-bottom: 20px;
+    }
+
+    .reading {
+      margin: 10px 0;
+      font-size: 1.2em;
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .device {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #333;
+      padding: 10px;
+      border-radius: 8px;
+    }
+
+    .btn {
+      padding: 6px 12px;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #666;
+      color: #fff;
+    }
+
+    .btn.on {
+      background: #2ecc71;
+    }
+
+    .btn.off {
+      background: #e74c3c;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Grow Tent Dashboard</h1>
+    
+    <div class="readings">
+      <div class="reading">
+        🌡️ Temperature: <span id="temp">--</span> °C
+      </div>
+      <div class="reading">
+        💧 Humidity: <span id="hum">--</span> %
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="device">
+        💡 Light
+        <button onclick="toggleDevice(1)" id="btn1" class="btn">OFF</button>
+      </div>
+      <div class="device">
+        🌬️ Fan
+        <button onclick="toggleDevice(2)" id="btn2" class="btn">OFF</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let temperature = 24.5;
+    let humidity = 60;
+    let deviceStates = { 1: false, 2: false };
+
+    function updateDisplay() {
+      document.getElementById("temp").textContent = temperature.toFixed(1);
+      document.getElementById("hum").textContent = humidity.toFixed(1);
+    }
+
+    function toggleDevice(deviceId) {
+      const btn = document.getElementById("btn" + deviceId);
+      deviceStates[deviceId] = !deviceStates[deviceId];
+      const isOn = deviceStates[deviceId];
+      
+      btn.textContent = isOn ? "ON" : "OFF";
+      btn.classList.toggle("on", isOn);
+      btn.classList.toggle("off", !isOn);
+
+      // Replace this with your own backend or MQTT call
+      console.log(`Device ${deviceId} is now ${isOn ? "ON" : "OFF"}`);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      updateDisplay();
+      toggleDevice(1); // set initial state
+      toggleDevice(1); // back to OFF
+      toggleDevice(2);
+      toggleDevice(2);
+    });
+  </script>
+</body>
+</html>

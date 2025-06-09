@@ -56,33 +56,141 @@ void handleRoot() {
     <head>
         <meta charset='UTF-8'>
         <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-        <title>Wine Fridge Dashboard</title>
+        <title>My Growbuddy</title>
         <style>
-            body { font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(120deg, #f4f4f9 60%, #ede7f6 100%); color: #222; margin: 0; padding: 0; }
-            .dashboard { max-width: 500px; margin: 40px auto; background: #fff; border-radius: 18px; box-shadow: 0 4px 24px rgba(123,31,162,0.10); padding: 2.5em 2em 2em 2em; }
-            h1 { color: #7b1fa2; text-align: center; margin-bottom: 2em; letter-spacing: 1px; }
-            .cards { display: flex; flex-wrap: wrap; gap: 1.5em; justify-content: center; margin-bottom: 2em; }
+            body { font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(120deg, #e8f5e9 60%, #c8e6c9 100%); color: #234d20; margin: 0; padding: 0; }
+            .topnav {
+                width: 100%;
+                background: #388e3c;
+                color: #fff;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 1em 1.5em;
+                box-sizing: border-box;
+                position: sticky;
+                top: 0;
+                z-index: 10;
+            }
+            .topnav .logo {
+                font-size: 1.5em;
+                font-weight: bold;
+                letter-spacing: 1px;
+                display: flex;
+                align-items: center;
+            }
+            .topnav .logo svg {
+                margin-right: 0.5em;
+            }
+            .topnav .menu {
+                font-size: 1.1em;
+                font-weight: 500;
+                display: flex;
+                gap: 1.5em;
+            }
+            .dashboard {
+                max-width: 540px;
+                margin: 40px auto;
+                background: #fff;
+                border-radius: 20px;
+                box-shadow: 0 4px 24px rgba(56,142,60,0.13);
+                padding: 2.5em 2em 2em 2em;
+            }
+            h1 { display:none; }
+            .cards {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 1.5em;
+                justify-content: center;
+                margin-bottom: 2em;
+            }
             .card {
-                flex: 1 1 180px; min-width: 160px; max-width: 220px;
-                background: #f8f6fc; border-radius: 12px; box-shadow: 0 1px 8px rgba(123,31,162,0.07);
-                padding: 1.2em 1em; display: flex; flex-direction: column; align-items: center; justify-content: center;
+                flex: 1 1 180px;
+                min-width: 140px;
+                max-width: 220px;
+                background: #f1f8e9;
+                border-radius: 14px;
+                box-shadow: 0 1px 8px rgba(56,142,60,0.09);
+                padding: 1.2em 1em;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
             }
             .icon { margin-bottom: 0.5em; }
-            .value { color: #7b1fa2; font-size: 2.1em; font-weight: bold; margin-bottom: 0.2em; }
-            .label { font-weight: 500; color: #333; font-size: 1.1em; margin-bottom: 0.3em; }
+            .value { color: #388e3c; font-size: 2.1em; font-weight: bold; margin-bottom: 0.2em; }
+            .label { font-weight: 500; color: #234d20; font-size: 1.1em; margin-bottom: 0.3em; }
             .badge {
-                display: inline-block; background: #7b1fa2; color: #fff; border-radius: 20px; padding: 0.3em 1em; font-size: 1em; font-weight: bold; margin-top: 0.3em;
+                display: inline-block;
+                background: #388e3c;
+                color: #fff;
+                border-radius: 20px;
+                padding: 0.3em 1em;
+                font-size: 1em;
+                font-weight: bold;
+                margin-top: 0.3em;
             }
             .error { color: #c62828; font-weight: bold; text-align: center; margin: 1em 0; }
-            .info-list { margin: 0 0 1.5em 0; padding: 0; list-style: none; }
-            .info-list li { margin: 0.5em 0; font-size: 1.1em; display: flex; align-items: center; }
-            .info-list .info-label { width: 120px; color: #555; font-weight: 500; }
-            .info-list .info-value { color: #7b1fa2; font-weight: 600; }
+            .info-list {
+                margin: 0 0 1.5em 0;
+                padding: 0;
+                list-style: none;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 1em 2em;
+                justify-content: center;
+            }
+            .info-list li {
+                margin: 0.5em 0;
+                font-size: 1.1em;
+                display: flex;
+                align-items: center;
+                min-width: 140px;
+            }
+            .info-list .info-label { width: 90px; color: #388e3c; font-weight: 500; }
+            .info-list .info-value { color: #234d20; font-weight: 600; }
             .wifi-icon { margin-right: 0.5em; }
-            .relay-btn { width:100%;padding:1em 0;margin-top:1.5em;font-size:1.2em;background:#7b1fa2;color:#fff;border:none;border-radius:12px;cursor:pointer;transition:background 0.2s; }
-            .relay-btn.on { background: #43a047; }
-            .relay-btn.off { background: #c62828; }
-            .relay-btn:hover { opacity: 0.85; }
+            .controls {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                margin-bottom: 1.5em;
+            }
+            .device {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                background: #e8f5e9;
+                color: #234d20;
+                padding: 10px 16px;
+                border-radius: 8px;
+                font-size: 1.1em;
+                margin-bottom: 0;
+                box-shadow: 0 1px 4px rgba(56,142,60,0.07);
+            }
+            .btn {
+                padding: 6px 18px;
+                font-weight: bold;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                background: #666;
+                color: #fff;
+                font-size: 1em;
+                transition: background 0.2s;
+            }
+            .btn.on {
+                background: #2ecc71;
+            }
+            .btn.off {
+                background: #e74c3c;
+            }
+            @media (max-width: 700px) {
+                .dashboard { max-width: 98vw; padding: 1.2em 0.5em; }
+                .cards { flex-direction: column; gap: 1em; }
+                .card { min-width: 0; width: 100%; }
+                .info-list { flex-direction: column; gap: 0.5em; }
+            }
         </style>
         <script>
         function updateDashboard(data) {
@@ -104,10 +212,13 @@ void handleRoot() {
             document.getElementById('ssid-value').innerText = data.ssid;
             document.getElementById('rssi-value').innerText = data.rssi + ' dBm';
             document.getElementById('time-value').innerText = data.time;
-            document.getElementById('relay1-btn').innerText = 'Relay 1: ' + (data.relay1 ? 'ON' : 'OFF');
-            document.getElementById('relay1-btn').className = 'relay-btn ' + (data.relay1 ? 'on' : 'off');
-            document.getElementById('relay2-btn').innerText = 'Relay 2: ' + (data.relay2 ? 'ON' : 'OFF');
-            document.getElementById('relay2-btn').className = 'relay-btn ' + (data.relay2 ? 'on' : 'off');
+            // Fix relay button text and classes for new .btn style
+            var relay1Btn = document.getElementById('relay1-btn');
+            relay1Btn.textContent = data.relay1 ? 'ON' : 'OFF';
+            relay1Btn.className = 'btn ' + (data.relay1 ? 'on' : 'off');
+            var relay2Btn = document.getElementById('relay2-btn');
+            relay2Btn.textContent = data.relay2 ? 'ON' : 'OFF';
+            relay2Btn.className = 'btn ' + (data.relay2 ? 'on' : 'off');
         }
         function fetchStatus() {
             fetch('/status').then(r => r.json()).then(updateDashboard);
@@ -117,14 +228,22 @@ void handleRoot() {
         </script>
     </head>
     <body>
+        <div class='topnav'>
+            <span class='logo'>
+                <svg width='28' height='28' viewBox='0 0 24 24' fill='none' stroke='#fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 2v20M2 12h20'/><circle cx='12' cy='12' r='10' stroke='#fff' stroke-width='2' fill='#66bb6a'/></svg>
+                My Growbuddy
+            </span>
+            <span class='menu'>
+                <span>Dashboard</span>
+                <span>Relays</span>
+                <span>About</span>
+            </span>
+        </div>
         <div class='dashboard'>
-            <h1>Wine Fridge Dashboard</h1>
-            <ul class='info-list'>
-                <li><span class='wifi-icon'><svg width='22' height='22' fill='none' stroke='#7b1fa2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M1 10a21 21 0 0 1 22 0'/><path d='M5 14a15 15 0 0 1 14 0'/><path d='M9 18a7 7 0 0 1 6 0'/><circle cx='12' cy='21' r='1'/></svg></span><span class='info-label'>IP Address:</span> <span class='info-value' id='ip-value'>%IP%</span></li>
-                <li><span class='info-label'>SSID:</span> <span class='info-value' id='ssid-value'>%SSID%</span></li>
-                <li><span class='info-label'>Signal:</span> <span class='badge' id='rssi-value'>%RSSI% dBm</span></li>
-                <li><span class='info-label'>Time:</span> <span class='info-value' id='time-value'>%TIME%</span></li>
-            </ul>
+            <div style='text-align:center;margin-bottom:2em;'>
+                <img src="https://img.icons8.com/color/96/000000/plant-under-sun.png" alt="Growbuddy Plant" style="width:64px;height:64px;vertical-align:middle;">
+                <div style='font-size:1.3em;font-weight:500;margin-top:0.5em;color:#388e3c;'>Greenhouse/Indoor Garden Monitor</div>
+            </div>
             <div class='cards'>
                 <div class='card'>
                     <div class='icon'>
@@ -143,12 +262,26 @@ void handleRoot() {
                     <div class='badge' id='hum-badge'>%HUMBADGE%</div>
                 </div>
             </div>
-            <form method='POST' action='/relay'>
-                <button id='relay1-btn' class='relay-btn %RELAYCLASS%' type='submit'>Relay 1: %RELAYSTATE%</button>
-            </form>
-            <form method='POST' action='/relay2'>
-                <button id='relay2-btn' class='relay-btn %RELAY2CLASS%' type='submit'>Relay 2: %RELAY2STATE%</button>
-            </form>
+            <div class='controls' style='margin:2em 0;'>
+                <div class='device'>
+                    <span>💡 Light</span>
+                    <form method='POST' action='/relay' style='margin:0;'>
+                        <button id='relay1-btn' class='btn %RELAYCLASS%' type='submit'>%RELAYSTATE%</button>
+                    </form>
+                </div>
+                <div class='device'>
+                    <span>🌬️ Fan</span>
+                    <form method='POST' action='/relay2' style='margin:0;'>
+                        <button id='relay2-btn' class='btn %RELAY2CLASS%' type='submit'>%RELAY2STATE%</button>
+                    </form>
+                </div>
+            </div>
+            <ul class='info-list'>
+                <li><span class='wifi-icon'><svg width='22' height='22' fill='none' stroke='#7b1fa2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M1 10a21 21 0 0 1 22 0'/><path d='M5 14a15 15 0 0 1 14 0'/><path d='M9 18a7 7 0 0 1 6 0'/><circle cx='12' cy='21' r='1'/></svg></span><span class='info-label'>IP:</span> <span class='info-value' id='ip-value'>%IP%</span></li>
+                <li><span class='info-label'>SSID:</span> <span class='info-value' id='ssid-value'>%SSID%</span></li>
+                <li><span class='info-label'>Signal:</span> <span class='badge' id='rssi-value'>%RSSI% dBm</span></li>
+                <li><span class='info-label'>Time:</span> <span class='info-value' id='time-value'>%TIME%</span></li>
+            </ul>
         </div>
     </body>
     </html>
@@ -169,6 +302,14 @@ void handleRoot() {
     html.replace("%RELAYCLASS%", relayState ? "on" : "off");
     html.replace("%RELAY2STATE%", relay2State ? "ON" : "OFF");
     html.replace("%RELAY2CLASS%", relay2State ? "on" : "off");
+    String relay1Color = relayState ? "#43a047" : "#c62828";
+    String relay2Color = relay2State ? "#43a047" : "#c62828";
+    String relay1Label = relayState ? "ON" : "OFF";
+    String relay2Label = relay2State ? "ON" : "OFF";
+    html.replace("%RELAY1COLOR%", relay1Color);
+    html.replace("%RELAY2COLOR%", relay2Color);
+    html.replace("%RELAY1LABEL%", relay1Label);
+    html.replace("%RELAY2LABEL%", relay2Label);
     server.send(200, "text/html", html);
 }
 
