@@ -31,6 +31,22 @@ void handleRelay2Toggle() {
     server.send(303); // Redirect to root
 }
 
+void handleStatus() {
+    float h = dht.readHumidity();
+    float t = dht.readTemperature();
+    String json = "{";
+    json += "\"temperature\":" + (isnan(t) ? "null" : String(t, 1)) + ",";
+    json += "\"humidity\":" + (isnan(h) ? "null" : String(h, 1)) + ",";
+    json += "\"relay1\":" + String(relayState ? 1 : 0) + ",";
+    json += "\"relay2\":" + String(relay2State ? 1 : 0) + ",";
+    json += "\"ip\":\"" + WiFi.localIP().toString() + "\",";
+    json += "\"ssid\":\"" + WiFi.SSID() + "\",";
+    json += "\"rssi\":" + String(WiFi.RSSI()) + ",";
+    json += "\"time\":\"" + getCurrentTimeString() + "\"";
+    json += "}";
+    server.send(200, "application/json", json);
+}
+
 void handleRoot() {
     float h = dht.readHumidity();
     float t = dht.readTemperature();
@@ -68,59 +84,91 @@ void handleRoot() {
             .relay-btn.off { background: #c62828; }
             .relay-btn:hover { opacity: 0.85; }
         </style>
+        <script>
+        function updateDashboard(data) {
+            if (data.temperature !== null) {
+                document.getElementById('temp-value').innerHTML = data.temperature.toFixed(1) + ' &deg;C';
+                document.getElementById('temp-badge').innerText = data.temperature < 10 ? 'Cold' : (data.temperature > 20 ? 'Warm' : 'OK');
+            } else {
+                document.getElementById('temp-value').innerText = 'Error';
+                document.getElementById('temp-badge').innerText = '';
+            }
+            if (data.humidity !== null) {
+                document.getElementById('hum-value').innerHTML = data.humidity.toFixed(1) + ' %';
+                document.getElementById('hum-badge').innerText = data.humidity < 40 ? 'Dry' : (data.humidity > 70 ? 'Humid' : 'OK');
+            } else {
+                document.getElementById('hum-value').innerText = 'Error';
+                document.getElementById('hum-badge').innerText = '';
+            }
+            document.getElementById('ip-value').innerText = data.ip;
+            document.getElementById('ssid-value').innerText = data.ssid;
+            document.getElementById('rssi-value').innerText = data.rssi + ' dBm';
+            document.getElementById('time-value').innerText = data.time;
+            document.getElementById('relay1-btn').innerText = 'Relay 1: ' + (data.relay1 ? 'ON' : 'OFF');
+            document.getElementById('relay1-btn').className = 'relay-btn ' + (data.relay1 ? 'on' : 'off');
+            document.getElementById('relay2-btn').innerText = 'Relay 2: ' + (data.relay2 ? 'ON' : 'OFF');
+            document.getElementById('relay2-btn').className = 'relay-btn ' + (data.relay2 ? 'on' : 'off');
+        }
+        function fetchStatus() {
+            fetch('/status').then(r => r.json()).then(updateDashboard);
+        }
+        setInterval(fetchStatus, 3000);
+        window.onload = fetchStatus;
+        </script>
     </head>
     <body>
         <div class='dashboard'>
             <h1>Wine Fridge Dashboard</h1>
             <ul class='info-list'>
-                <li><span class='wifi-icon'><svg width='22' height='22' fill='none' stroke='#7b1fa2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M1 10a21 21 0 0 1 22 0'/><path d='M5 14a15 15 0 0 1 14 0'/><path d='M9 18a7 7 0 0 1 6 0'/><circle cx='12' cy='21' r='1'/></svg></span><span class='info-label'>IP Address:</span> <span class='info-value'>%IP%</span></li>
-                <li><span class='info-label'>SSID:</span> <span class='info-value'>%SSID%</span></li>
-                <li><span class='info-label'>Signal:</span> <span class='badge'>%RSSI% dBm</span></li>
-                <li><span class='info-label'>Time:</span> <span class='info-value'>%TIME%</span></li>
+                <li><span class='wifi-icon'><svg width='22' height='22' fill='none' stroke='#7b1fa2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M1 10a21 21 0 0 1 22 0'/><path d='M5 14a15 15 0 0 1 14 0'/><path d='M9 18a7 7 0 0 1 6 0'/><circle cx='12' cy='21' r='1'/></svg></span><span class='info-label'>IP Address:</span> <span class='info-value' id='ip-value'>%IP%</span></li>
+                <li><span class='info-label'>SSID:</span> <span class='info-value' id='ssid-value'>%SSID%</span></li>
+                <li><span class='info-label'>Signal:</span> <span class='badge' id='rssi-value'>%RSSI% dBm</span></li>
+                <li><span class='info-label'>Time:</span> <span class='info-value' id='time-value'>%TIME%</span></li>
             </ul>
             <div class='cards'>
-                %DHTINFO%
+                <div class='card'>
+                    <div class='icon'>
+                        <img src='https://img.icons8.com/fluency/48/000000/temperature.png' alt='Temperature' width='48' height='48'>
+                    </div>
+                    <div class='label'>Temperature</div>
+                    <div class='value' id='temp-value'>%TEMP%</div>
+                    <div class='badge' id='temp-badge'>%TEMPBADGE%</div>
+                </div>
+                <div class='card'>
+                    <div class='icon'>
+                        <img src='https://img.icons8.com/fluency/48/000000/hygrometer.png' alt='Humidity' width='48' height='48'>
+                    </div>
+                    <div class='label'>Humidity</div>
+                    <div class='value' id='hum-value'>%HUM%</div>
+                    <div class='badge' id='hum-badge'>%HUMBADGE%</div>
+                </div>
             </div>
             <form method='POST' action='/relay'>
-                <button class='relay-btn %RELAYCLASS%' type='submit'>Relay 1: %RELAYSTATE%</button>
+                <button id='relay1-btn' class='relay-btn %RELAYCLASS%' type='submit'>Relay 1: %RELAYSTATE%</button>
             </form>
             <form method='POST' action='/relay2'>
-                <button class='relay-btn %RELAY2CLASS%' type='submit'>Relay 2: %RELAY2STATE%</button>
+                <button id='relay2-btn' class='relay-btn %RELAY2CLASS%' type='submit'>Relay 2: %RELAY2STATE%</button>
             </form>
         </div>
     </body>
     </html>
     )rawliteral";
-    String dhtInfo;
-    if (isnan(h) || isnan(t)) {
-        dhtInfo = "<div class='card error'>DHT11 Sensor: Error reading data</div>";
-    } else {
-        dhtInfo = "<div class='card'>"
-            "<div class='icon'>"
-            "<img src='https://img.icons8.com/fluency/48/000000/temperature.png' alt='Temperature' width='48' height='48'>"
-            "</div>"
-            "<div class='label'>Temperature</div>"
-            "<div class='value'>" + String(t, 1) + " &deg;C</div>"
-            "<div class='badge'>" + (t < 10 ? "Cold" : t > 20 ? "Warm" : "OK") + "</div>"
-            "</div>";
-        dhtInfo += "<div class='card'>"
-            "<div class='icon'>"
-            "<img src='https://img.icons8.com/fluency/48/000000/hygrometer.png' alt='Humidity' width='48' height='48'>"
-            "</div>"
-            "<div class='label'>Humidity</div>"
-            "<div class='value'>" + String(h, 1) + " %</div>"
-            "<div class='badge'>" + (h < 40 ? "Dry" : h > 70 ? "Humid" : "OK") + "</div>"
-            "</div>";
-    }
+    String tempStr = isnan(t) ? "Error" : String(t, 1) + " &deg;C";
+    String tempBadge = isnan(t) ? "" : (t < 10 ? "Cold" : t > 20 ? "Warm" : "OK");
+    String humStr = isnan(h) ? "Error" : String(h, 1) + " %";
+    String humBadge = isnan(h) ? "" : (h < 40 ? "Dry" : h > 70 ? "Humid" : "OK");
     html.replace("%IP%", WiFi.localIP().toString());
     html.replace("%SSID%", WiFi.SSID());
     html.replace("%RSSI%", String(WiFi.RSSI()));
-    html.replace("%DHTINFO%", dhtInfo);
+    html.replace("%TIME%", getCurrentTimeString());
+    html.replace("%TEMP%", tempStr);
+    html.replace("%TEMPBADGE%", tempBadge);
+    html.replace("%HUM%", humStr);
+    html.replace("%HUMBADGE%", humBadge);
     html.replace("%RELAYSTATE%", relayState ? "ON" : "OFF");
     html.replace("%RELAYCLASS%", relayState ? "on" : "off");
     html.replace("%RELAY2STATE%", relay2State ? "ON" : "OFF");
     html.replace("%RELAY2CLASS%", relay2State ? "on" : "off");
-    html.replace("%TIME%", getCurrentTimeString());
     server.send(200, "text/html", html);
 }
 
@@ -148,6 +196,7 @@ void setup() {
     server.on("/", handleRoot);
     server.on("/relay", HTTP_POST, handleRelayToggle);
     server.on("/relay2", HTTP_POST, handleRelay2Toggle);
+    server.on("/status", HTTP_GET, handleStatus);
     server.begin();
     Serial.println("Web server started. Open http://" + WiFi.localIP().toString());
 
