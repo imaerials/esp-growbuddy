@@ -17,6 +17,10 @@ ESP8266WebServer server(80);
 // Function prototype
 String getCurrentTimeString();
 
+// Timezone setting (default: UTC-3 for Mercosur)
+int timezoneOffset = -3 * 3600; // seconds
+String timezoneName = "America/Argentina/Buenos_Aires";
+
 void handleRelayToggle() {
     relayState = !relayState;
     digitalWrite(RELAY_PIN, relayState ? HIGH : LOW);
@@ -234,8 +238,8 @@ void handleRoot() {
                 My Growbuddy
             </span>
             <span class='menu'>
-                <span>Dashboard</span>
-                <span>Relays</span>
+                <a href='/' style='color:inherit;text-decoration:none;margin-right:1em;'>Dashboard</a>
+                <a href='/settings' style='color:inherit;text-decoration:none;margin-right:1em;'>Settings</a>
                 <span>About</span>
             </span>
         </div>
@@ -313,6 +317,103 @@ void handleRoot() {
     server.send(200, "text/html", html);
 }
 
+void handleSettings() {
+    String html = R"rawliteral(
+    <!DOCTYPE html>
+    <html lang='en'>
+    <head>
+        <meta charset='UTF-8'>
+        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+        <title>Settings - My Growbuddy</title>
+        <style>
+            body { font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(120deg, #e8f5e9 60%, #c8e6c9 100%); color: #234d20; margin: 0; padding: 0; }
+            .topnav {
+                width: 100%;
+                background: #388e3c;
+                color: #fff;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 1em 1.5em;
+                box-sizing: border-box;
+                position: sticky;
+                top: 0;
+                z-index: 10;
+            }
+            .topnav .logo {
+                font-size: 1.5em;
+                font-weight: bold;
+                letter-spacing: 1px;
+                display: flex;
+                align-items: center;
+            }
+            .topnav .logo svg {
+                margin-right: 0.5em;
+            }
+            .topnav .menu {
+                font-size: 1.1em;
+                font-weight: 500;
+                display: flex;
+                gap: 1.5em;
+            }
+            .topnav .menu a {
+                color: inherit;
+                text-decoration: none;
+                margin-right: 1em;
+            }
+            .settings-container { max-width: 400px; margin: 40px auto; background: #fff; border-radius: 16px; box-shadow: 0 4px 24px rgba(56,142,60,0.13); padding: 2em; }
+            h2 { color: #388e3c; text-align: center; margin-bottom: 1.5em; }
+            label { display: block; margin-bottom: 0.5em; font-weight: 500; }
+            select, button { width: 100%; padding: 0.7em; border-radius: 8px; border: 1px solid #bdbdbd; margin-bottom: 1.5em; font-size: 1em; }
+            button { background: #388e3c; color: #fff; border: none; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+            button:hover { background: #2e7031; }
+        </style>
+    </head>
+    <body>
+        <div class='topnav'>
+            <span class='logo'>
+                <svg width='28' height='28' viewBox='0 0 24 24' fill='none' stroke='#fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 2v20M2 12h20'/><circle cx='12' cy='12' r='10' stroke='#fff' stroke-width='2' fill='#66bb6a'/></svg>
+                My Growbuddy
+            </span>
+            <span class='menu'>
+                <a href='/' style='color:inherit;text-decoration:none;margin-right:1em;'>Dashboard</a>
+                <a href='/settings' style='color:inherit;text-decoration:none;margin-right:1em;'>Settings</a>
+                <span>About</span>
+            </span>
+        </div>
+        <div class='settings-container'>
+            <h2>Settings</h2>
+            <form method='POST' action='/settings'>
+                <label for='timezone'>Time Zone (Mercosur):</label>
+                <select id='timezone' name='timezone'>
+                    <option value='America/Argentina/Buenos_Aires'" + (timezoneName == "America/Argentina/Buenos_Aires" ? " selected" : "") + ">Argentina (UTC-3)</option>
+                    <option value='America/Sao_Paulo'" + (timezoneName == "America/Sao_Paulo" ? " selected" : "") + ">Brazil (UTC-3)</option>
+                    <option value='America/Montevideo'" + (timezoneName == "America/Montevideo" ? " selected" : "") + ">Uruguay (UTC-3)</option>
+                    <option value='America/Asuncion'" + (timezoneName == "America/Asuncion" ? " selected" : "") + ">Paraguay (UTC-4/UTC-3 DST)</option>
+                </select>
+                <button type='submit'>Save</button>
+            </form>
+        </div>
+    </body>
+    </html>
+    )rawliteral";
+    server.send(200, "text/html", html);
+}
+
+void handleSettingsPost() {
+    if (server.hasArg("timezone")) {
+        timezoneName = server.arg("timezone");
+        if (timezoneName == "America/Argentina/Buenos_Aires" || timezoneName == "America/Sao_Paulo" || timezoneName == "America/Montevideo") {
+            timezoneOffset = -3 * 3600;
+        } else if (timezoneName == "America/Asuncion") {
+            timezoneOffset = -4 * 3600; // Paraguay standard, DST not handled
+        }
+        configTime(timezoneOffset, 0, "pool.ntp.org", "time.nist.gov");
+    }
+    server.sendHeader("Location", "/settings");
+    server.send(303);
+}
+
 void setup() {
     Serial.begin(115200);
     WiFi.mode(WIFI_STA); // Station mode
@@ -338,6 +439,8 @@ void setup() {
     server.on("/relay", HTTP_POST, handleRelayToggle);
     server.on("/relay2", HTTP_POST, handleRelay2Toggle);
     server.on("/status", HTTP_GET, handleStatus);
+    server.on("/settings", HTTP_GET, handleSettings);
+    server.on("/settings", HTTP_POST, handleSettingsPost);
     server.begin();
     Serial.println("Web server started. Open http://" + WiFi.localIP().toString());
 
