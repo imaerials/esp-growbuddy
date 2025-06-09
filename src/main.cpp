@@ -2,6 +2,7 @@
 #include <WiFiManager.h>
 #include <ESP8266WebServer.h>
 #include <DHT.h>
+#include <time.h>
 
 #define DHTPIN 13 // GPIO04 (D2 on NodeMCU)
 #define DHTTYPE DHT11
@@ -12,6 +13,9 @@ bool relayState = false;
 bool relay2State = false;
 
 ESP8266WebServer server(80);
+
+// Function prototype
+String getCurrentTimeString();
 
 void handleRelayToggle() {
     relayState = !relayState;
@@ -72,6 +76,7 @@ void handleRoot() {
                 <li><span class='wifi-icon'><svg width='22' height='22' fill='none' stroke='#7b1fa2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M1 10a21 21 0 0 1 22 0'/><path d='M5 14a15 15 0 0 1 14 0'/><path d='M9 18a7 7 0 0 1 6 0'/><circle cx='12' cy='21' r='1'/></svg></span><span class='info-label'>IP Address:</span> <span class='info-value'>%IP%</span></li>
                 <li><span class='info-label'>SSID:</span> <span class='info-value'>%SSID%</span></li>
                 <li><span class='info-label'>Signal:</span> <span class='badge'>%RSSI% dBm</span></li>
+                <li><span class='info-label'>Time:</span> <span class='info-value'>%TIME%</span></li>
             </ul>
             <div class='cards'>
                 %DHTINFO%
@@ -115,6 +120,7 @@ void handleRoot() {
     html.replace("%RELAYCLASS%", relayState ? "on" : "off");
     html.replace("%RELAY2STATE%", relay2State ? "ON" : "OFF");
     html.replace("%RELAY2CLASS%", relay2State ? "on" : "off");
+    html.replace("%TIME%", getCurrentTimeString());
     server.send(200, "text/html", html);
 }
 
@@ -144,9 +150,41 @@ void setup() {
     server.on("/relay2", HTTP_POST, handleRelay2Toggle);
     server.begin();
     Serial.println("Web server started. Open http://" + WiFi.localIP().toString());
+
+    // NTP time setup for Argentina (UTC-3, no DST)
+    configTime(-3 * 3600, 0, "pool.ntp.org", "time.nist.gov");
+    Serial.println("Waiting for NTP time sync...");
+    time_t now = time(nullptr);
+    int retry = 0;
+    const int retry_count = 20;
+    while (now < 8 * 3600 * 2 && retry < retry_count) {
+        delay(500);
+        Serial.print(".");
+        now = time(nullptr);
+        retry++;
+    }
+    Serial.println("");
+    if (now < 8 * 3600 * 2) {
+        Serial.println("Failed to sync time over NTP");
+    } else {
+        Serial.println("Time synchronized!");
+        struct tm timeinfo;
+        gmtime_r(&now, &timeinfo);
+        Serial.printf("Current time: %02d:%02d:%02d\n", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+    }
 }
 
 void loop() {
     server.handleClient();
     // Main code here
+}
+
+// Helper to get current time as string
+String getCurrentTimeString() {
+    time_t now = time(nullptr);
+    struct tm timeinfo;
+    localtime_r(&now, &timeinfo);
+    char buf[20];
+    snprintf(buf, sizeof(buf), "%02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+    return String(buf);
 }
