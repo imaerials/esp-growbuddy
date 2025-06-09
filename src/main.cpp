@@ -5,9 +5,27 @@
 
 #define DHTPIN 13 // GPIO04 (D2 on NodeMCU)
 #define DHTTYPE DHT11
+#define RELAY_PIN 14 // D5 on NodeMCU
+#define RELAY2_PIN 12 // D6 on NodeMCU
 DHT dht(DHTPIN, DHTTYPE);
+bool relayState = false;
+bool relay2State = false;
 
 ESP8266WebServer server(80);
+
+void handleRelayToggle() {
+    relayState = !relayState;
+    digitalWrite(RELAY_PIN, relayState ? HIGH : LOW);
+    server.sendHeader("Location", "/");
+    server.send(303); // Redirect to root
+}
+
+void handleRelay2Toggle() {
+    relay2State = !relay2State;
+    digitalWrite(RELAY2_PIN, relay2State ? HIGH : LOW);
+    server.sendHeader("Location", "/");
+    server.send(303); // Redirect to root
+}
 
 void handleRoot() {
     float h = dht.readHumidity();
@@ -41,6 +59,10 @@ void handleRoot() {
             .info-list .info-label { width: 120px; color: #555; font-weight: 500; }
             .info-list .info-value { color: #7b1fa2; font-weight: 600; }
             .wifi-icon { margin-right: 0.5em; }
+            .relay-btn { width:100%;padding:1em 0;margin-top:1.5em;font-size:1.2em;background:#7b1fa2;color:#fff;border:none;border-radius:12px;cursor:pointer;transition:background 0.2s; }
+            .relay-btn.on { background: #43a047; }
+            .relay-btn.off { background: #c62828; }
+            .relay-btn:hover { opacity: 0.85; }
         </style>
     </head>
     <body>
@@ -54,6 +76,12 @@ void handleRoot() {
             <div class='cards'>
                 %DHTINFO%
             </div>
+            <form method='POST' action='/relay'>
+                <button class='relay-btn %RELAYCLASS%' type='submit'>Relay 1: %RELAYSTATE%</button>
+            </form>
+            <form method='POST' action='/relay2'>
+                <button class='relay-btn %RELAY2CLASS%' type='submit'>Relay 2: %RELAY2STATE%</button>
+            </form>
         </div>
     </body>
     </html>
@@ -83,6 +111,10 @@ void handleRoot() {
     html.replace("%SSID%", WiFi.SSID());
     html.replace("%RSSI%", String(WiFi.RSSI()));
     html.replace("%DHTINFO%", dhtInfo);
+    html.replace("%RELAYSTATE%", relayState ? "ON" : "OFF");
+    html.replace("%RELAYCLASS%", relayState ? "on" : "off");
+    html.replace("%RELAY2STATE%", relay2State ? "ON" : "OFF");
+    html.replace("%RELAY2CLASS%", relay2State ? "on" : "off");
     server.send(200, "text/html", html);
 }
 
@@ -103,7 +135,13 @@ void setup() {
         Serial.println(WiFi.localIP());
     }
     dht.begin();
+    pinMode(RELAY_PIN, OUTPUT);
+    digitalWrite(RELAY_PIN, LOW);
+    pinMode(RELAY2_PIN, OUTPUT);
+    digitalWrite(RELAY2_PIN, LOW);
     server.on("/", handleRoot);
+    server.on("/relay", HTTP_POST, handleRelayToggle);
+    server.on("/relay2", HTTP_POST, handleRelay2Toggle);
     server.begin();
     Serial.println("Web server started. Open http://" + WiFi.localIP().toString());
 }
